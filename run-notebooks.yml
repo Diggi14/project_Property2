@@ -1,0 +1,60 @@
+name: Auto-run Notebooks on Changes
+
+on:
+  push:
+    paths:
+      - '**.ipynb'  # Trigger when any notebook changes
+      - '.github/workflows/run-notebooks.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  run-notebooks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install jupyter nbconvert pandas numpy scikit-learn matplotlib seaborn
+        # Add any other libraries you use
+    
+    - name: Run 1_basic.ipynb
+      run: |
+        jupyter nbconvert --to notebook --execute --inplace 1_basic.ipynb
+        echo "✅ 1_basic.ipynb executed"
+    
+    - name: Run Data_filling.ipynb
+      run: |
+        jupyter nbconvert --to notebook --execute --inplace Data_filling.ipynb
+        echo "✅ Data_filling.ipynb executed"
+    
+    - name: Run feature_extraction.ipynb
+      run: |
+        jupyter nbconvert --to notebook --execute --inplace feature_extraction.ipynb
+        echo "✅ feature_extraction.ipynb executed"
+    
+    - name: Run remaining notebooks
+      run: |
+        jupyter nbconvert --to notebook --execute --inplace basemodel.ipynb
+        jupyter nbconvert --to notebook --execute --inplace outliers.ipynb
+        jupyter nbconvert --to notebook --execute --inplace multi_eda.ipynb
+        jupyter nbconvert --to notebook --execute --inplace uni_eda.ipynb
+        jupyter nbconvert --to notebook --execute --inplace loc_generator.ipynb
+        jupyter nbconvert --to notebook --execute --inplace model_selection.ipynb
+    
+    - name: Commit and push updated CSV files
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add *.csv *.ipynb
+        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 Auto-update: Regenerated CSV files from notebook changes"
+        git push
